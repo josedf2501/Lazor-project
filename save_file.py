@@ -1,11 +1,14 @@
 from PIL import Image, ImageDraw
-def save(GRID, lasers, points_position):
+
+
+def save(GRID, lasers, points_position, cur_blocks):
     # rBlocks are the number of rows of the grid and cBlocks are the columns
 
     rBlocks = 0
     lazer = lasers['position']
     row = []
     Block = []
+
     # This for loop is used to form the Grid like in the lazor app.
     for i in range(0, len(GRID)):
         # The reading function give us a series of numbers.
@@ -26,6 +29,51 @@ def save(GRID, lasers, points_position):
             # The row list resets every time a row is appended to the GRID
             row = []
     rBlocks = rBlocks - 1
+    # A,B,C will store the position of the blocks in form of lists.
+    A = cur_blocks['A']
+    B = cur_blocks['B']
+    C = cur_blocks['C']
+    # SolA,B,C will store the position of the blocks in a way they fit on the GRID
+    solA = []
+    solB = []
+    solC = []
+    # The for loop will be used to adjust the blocks in the GRID.
+    if not A:
+        pass
+    else:
+        for i in A:
+            xb = i[0] / 2 - 0.5
+            yb = i[1] / 2 - 0.5
+            t = (xb, yb)
+            solA.append(t)
+    if not B:
+        pass
+    else:
+        for i in B:
+            xb = i[0] / 2 - 0.5
+            yb = i[1] / 2 - 0.5
+            t = (xb, yb)
+            solB.append(t)
+
+    if not C:
+        pass
+    else:
+        for i in C:
+            xb = i[0] / 2 - 0.5
+            yb = i[1] / 2 - 0.5
+            t = (xb, yb)
+            solC.append(t)
+    for i in range(rBlocks):
+        for j in range(cBlocks):
+            if (i, j) in solB:
+                Block[i][j] = 3
+                print(i, j)
+            if (i, j) in solA:
+                Block[i][j] = 2
+                print(i, j)
+            if (i, j) in solC:
+                Block[i][j] = 4
+
     # Define size of the image
     blockSize = 100
     # create a list called figure that will store the values for each color.
@@ -37,10 +85,15 @@ def save(GRID, lasers, points_position):
         for j in range(cBlocks):
             if Block[i][j] == 1:
                 figure[i][j] = 0
+            if Block[i][j] == 2:
+                figure[i][j] = 2
+            if Block[i][j] == 3:
+                figure[i][j] = 3
+            if Block[i][j] == 4:
+                figure[i][j] = 4
             if Block[i][j] == 5:
                 figure[i][j] = 1
-            if Block[i][j] == 3:
-                figure[i][j] = 2
+
     # Create a new image.
     img = Image.new("RGBA", (dims1, dims2), color=0)
     for jx in range(cBlocks):
@@ -93,15 +146,22 @@ def save(GRID, lasers, points_position):
         shape = [(xp - 10, yp - 10), (xp + 10, yp + 10)]
         img1 = ImageDraw.Draw(img)
         img1.ellipse(shape, fill=(0, 0, 0, 255))
-    img.save('sol.png')
+
+    img.save('dark_1.png')
+
 
 def get_colors():
     # This function returns colors for each block of the grid.
+    # 0: Silver for blocks allowed
+    # 1: White for no blocks allowed
+    # 2: Light steel blue for fixed reflect block
+    # 3: Dim grey for fixed opaque block
+    # 4: Slate grey for fixed refract block
 
     return {
-        0: (221, 190, 144),
-        1: (220, 220, 220),
-        2: (80, 80, 80),
-        3: (119, 136, 170),
-        4: (89, 62, 49),
+        0: (192, 192, 192),
+        1: (255, 255, 255),
+        2: (176, 196, 222),
+        3: (105, 105, 105),
+        4: (112, 128, 144),
     }
