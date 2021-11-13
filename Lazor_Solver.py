@@ -1,5 +1,132 @@
 
 
+import re
+from PIL import Image, ImageDraw
+
+def read_bff(filename):
+    '''
+    Read bff files and turn it to a list representing grid, and two
+    dictionaries including information about lasers and available blocks
+    **Parameters**
+        filename: *str*
+            The name of bff file
+    **Returns**
+        GRID: *list*
+            A 2D list representing the layout of grid
+            0 represent gaps
+            1 represent an allowed position for block
+            2 represent reflect block
+            3 represent opaque block
+            4 represent refract block
+            5 represent a position can not place block
+            6 represent the points that need laser to intersect
+        blocks: *dictionary*
+            a dictionary includes how many and what kind of block we can use
+        lasers: *dictionary*
+            a dictionary includes the position and direction of lasers
+        points_position: *list*
+            a list that contains all the points we need to pass
+    '''
+    # ensure filename
+    if ".bff" in filename:
+        filename = filename.split(".bff")[0]
+    bff = open(filename + ".bff")
+
+    # read file and find the grid part
+    content = bff.read()
+    pattern = 'GRID START.*GRID STOP'
+    grid = re.search(pattern, content, re.DOTALL)
+    grid_text = content[grid.start():grid.end()]
+    bff.close()
+
+    # calculate the size of our grid
+    rows = 0
+    columns = 0
+
+    # find one line of grid, calculate how many columns we need
+    row = re.search('([oxABC] *)+[oxABC]', content)
+    row = content[row.start():row.end()]
+    for i in row:
+        if i == 'o' or i == 'x' or i == 'A' or i == 'B' or i == 'C':
+            columns += 1
+
+    # creat a list and make each line of grid a element
+    # to calculate the number of rows
+    Rows = grid_text.split('\n')
+    Rows.remove('GRID START')
+    Rows.remove('GRID STOP')
+    rows = len(Rows)
+
+    # creat the 2d list
+    GRID = [
+        [0 for i in range(2 * columns + 1)]
+        for j in range(2 * rows + 1)
+    ]
+
+    # change the number of responding position
+    a = -1
+    for i in Rows:
+        a += 1
+        k = 0
+        for j in i:
+            if j == 'o':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 1
+            if j == 'A':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 2
+            if j == 'B':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 3
+            if j == 'C':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 4
+            if j == 'x':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 5
+
+    # obtain the points information of bff files
+    # store them to a list and change their position
+    # number to 6
+    points = re.findall('P \\d \\d', content)
+    points_position = []
+    for i in points:
+        position = i.split(' ')
+        x_coord = int(position[1])
+        y_coord = int(position[2])
+        points_position.append((x_coord, y_coord))
+        # GRID[y_coord][x_coord] = 6
+
+    # obtain the lasers information of bff files
+    # and combine them to a dictionary
+    lasers = {}
+    laser = re.findall('L \\d \\d .*\\d .*\\d', content)
+    p = []
+    d = []
+    for i in laser:
+        info = i.split(' ')
+        x_coord = int(info[1])
+        y_coord = int(info[2])
+        p.append((x_coord, y_coord))
+        lasers['position'] = p
+        x_dir = int(info[3])
+        y_dir = int(info[4])
+        d.append((x_dir, y_dir))
+        lasers['direction'] = d
+
+    # obtian the blocks information of bff files
+    # and combine them to a dictionary
+    blocks = {}
+    block = re.findall('[ABC] \\d', content)
+    for i in block:
+        information = i.split(' ')
+        blocks[information[0]] = int(information[1])
+
+    return (GRID, blocks, lasers, points_position)
+
+
+
+
 def laser_path(position, direction, board, blocks):
 
     x = position[0]
@@ -28,9 +155,9 @@ def laser_path(position, direction, board, blocks):
             return False
         if y<0:
             return False
-        if x>=len(board[0]):
+        if x>=len(board):
             return False
-        if y>=len(board):
+        if y>=len(board[0]):
             return False
         return True
 
@@ -76,10 +203,240 @@ def If_Win(points_position, lazer_path):
             all_points_in_path.add(point)
     #for each points in points_position, if all points is part of lazor_path then win, otherwise lose.
     for point in points_position:
+        point  = (point[1],point[0])
         if point not in all_points_in_path:
             return False
     return True
 
+def run_pro(lasers,points_position,GRID,blocks):
+    PATH = []
+    for i in range(len(lasers['position'])):
+        laser_position = (lasers['position'][i][1],lasers['position'][i][0])
+        laser_direction = (lasers['direction'][i][1],lasers['direction'][i][0])
+        path = laser_path(laser_position, laser_direction,
+                          GRID, blocks)
+        PATH.append(path)
+    """if (3,3) in blocks['A'] and (9,1) in blocks['A'] and (5,1) in blocks['A'] and (11,3) in blocks['A'] and (7,5) in blocks['A'] and (5,9) in blocks['A'] and (9,9) in blocks['A'] and (11,7) in blocks['A']:
+        print(PATH)"""
+    return If_Win(points_position, PATH)
+
+def run_all_blocks_comb(blocks,GRID,index,cur_blocks,lasers,points_position):
+    lens = len(GRID[0])*len(GRID)
+    if ('A' not in blocks or blocks['A']==0) and ('B' not in blocks or blocks['B']==0) and ('C' not in blocks or blocks['C']==0):
+        if(run_pro(lasers,points_position,GRID,cur_blocks) == True):
+            print(cur_blocks)
+        return run_pro(lasers,points_position,GRID,cur_blocks)
+    for i in range(index,lens):
+        col_index = (int)(i/len(GRID[0]))
+        row_index = (int)(i%len(GRID[0]))
+        if GRID[col_index][row_index] == 1:
+            if 'A' in blocks and blocks['A'] > 0:
+                cur_blocks['A'].append((col_index,row_index))
+                blocks['A'] -= 1
+                if run_all_blocks_comb(blocks,GRID,i+1,cur_blocks,lasers,points_position) == True:
+                    return True
+                blocks['A'] += 1
+                cur_blocks['A'].pop()
+            if 'B' in blocks and blocks['B'] > 0:
+                cur_blocks['B'].append((col_index,row_index))
+                blocks['B'] -= 1
+                if run_all_blocks_comb(blocks,GRID,i+1,cur_blocks,lasers,points_position) == True:
+                    return True
+                blocks['B'] += 1
+                cur_blocks['B'].pop()
+            if 'C' in blocks and blocks['C'] > 0:
+                cur_blocks['C'].append((col_index,row_index))
+                blocks['C'] -= 1
+                if run_all_blocks_comb(blocks,GRID,i+1,cur_blocks,lasers,points_position) == True:
+                    return True
+                blocks['C'] += 1
+                cur_blocks['C'].pop()
+    return False
+def save(GRID, lasers, points_position, cur_blocks):
+    # rBlocks are the number of rows of the grid and cBlocks are the columns
+
+    rBlocks = 0
+    lazer = lasers['position']
+    row = []
+    Block = []
+
+    # This for loop is used to form the Grid like in the lazor app.
+    for i in range(0, len(GRID)):
+        # The reading function give us a series of numbers.
+        # When the list is full of zeros means that t
+        if 1 in GRID[i] or 5 in GRID[i]:
+            cBlocks = 0
+            for k in range(0, len(GRID[i])):
+
+                if GRID[i][k] > 0:
+
+                    cBlocks = cBlocks + 1
+                    row.append(GRID[i][k])
+
+            Block.append(row)
+
+        else:
+            rBlocks = rBlocks + 1
+            # The row list resets every time a row is appended to the GRID
+            row = []
+    rBlocks = rBlocks - 1
+    # A,B,C will store the position of the blocks in form of lists.
+    A = cur_blocks['A']
+    B = cur_blocks['B']
+    C = cur_blocks['C']
+    # SolA,B,C will store the position of the blocks in a way they fit on the GRID
+    solA = []
+    solB = []
+    solC = []
+    # The for loop will be used to adjust the blocks in the GRID.
+    if not A:
+        pass
+    else:
+        for i in A:
+            xa = i[0] / 2 - 0.5
+            ya = i[1] / 2 - 0.5
+            t = (xa, ya)
+            solA.append(t)
+    if not B:
+        pass
+    else:
+        for i in B:
+            xb = i[0] / 2 - 0.5
+            yb = i[1] / 2 - 0.5
+            t = (xb, yb)
+            solB.append(t)
+
+    if not C:
+        pass
+    else:
+        for i in C:
+            xc = i[0] / 2 - 0.5
+            yc = i[1] / 2 - 0.5
+            t = (xc, yc)
+            solC.append(t)
+    for i in range(rBlocks):
+        for j in range(cBlocks):
+            if (i, j) in solB:
+                Block[i][j] = 3
+            if (i, j) in solA:
+                Block[i][j] = 2
+            if (i, j) in solC:
+                Block[i][j] = 4
+
+    # Define size of the image
+    blockSize = 100
+    # create a list called figure that will store the values for each color.
+    figure = [[0 for i in range(cBlocks)] for j in range(rBlocks)]
+    dims1 = cBlocks * blockSize
+    dims2 = rBlocks * blockSize
+    # Assign the color values according to the solution of the GRID.
+    for i in range(rBlocks):
+        for j in range(cBlocks):
+            if Block[i][j] == 1:
+                figure[i][j] = 0
+            if Block[i][j] == 2:
+                figure[i][j] = 2
+            if Block[i][j] == 3:
+                figure[i][j] = 3
+            if Block[i][j] == 4:
+                figure[i][j] = 4
+            if Block[i][j] == 5:
+                figure[i][j] = 1
+
+    # Create a new image.
+    img = Image.new("RGBA", (dims1, dims2), color=0)
+    for jx in range(cBlocks):
+        for jy in range(rBlocks):
+            x = jx * blockSize
+            y = jy * blockSize
+
+            for i in range(blockSize):
+                for j in range(blockSize):
+                    colors = get_colors()
+                    img.putpixel((x + i, y + j),
+                                 colors[figure[jy][jx]])
+
+    draw = ImageDraw.Draw(img)
+    step_size1 = int(dims1 / cBlocks)
+    step_size2 = int(dims2 / rBlocks)
+    y_start = 0
+    y_end = dims2
+
+    # Create the vertical lines of the grid.
+    for x in range(0, dims1, step_size1):
+        line = ((x, y_start), (x, y_end))
+        draw.line(line, fill=(0, 0, 0, 255))
+    x_start = 0
+    x_end = dims1
+
+    # Create the horizontal lines of the grid.
+    for y in range(0, dims2, step_size2):
+        line = ((x_start, y), (x_end, y))
+        draw.line(line, fill=(0, 0, 0, 255))
+    line = ((x_start, dims2 - 1), (x_end, dims2 - 1))
+    draw.line(line, fill=(0, 0, 0, 255))
+    line = ((dims1 - 1, y_start), (dims1 - 1, y_end))
+    draw.line(line, fill=(0, 0, 0, 255))
+
+    # Put the lazer points of the grid.
+    for i in lazer:
+        # i is divided by two to adjust the values of the lazer positions
+        # to the range of the image.
+        xp = i[0] / 2 * step_size1
+        yp = (i[1] / 2) * step_size2
+        shape = [(xp - 5, yp - 5), (xp + 5, yp + 5)]
+        img1 = ImageDraw.Draw(img)
+        img1.ellipse(shape, fill=(255, 0, 0, 255))
+    # Put the black points of the grid.
+    for i in points_position:
+        xp = i[0] / 2 * step_size1
+        yp = (i[1] / 2) * step_size2
+
+        shape = [(xp - 10, yp - 10), (xp + 10, yp + 10)]
+        img1 = ImageDraw.Draw(img)
+        img1.ellipse(shape, fill=(0, 0, 0, 255))
+
+    img.save('mad_7.png')
 
 
-        
+def get_colors():
+    # This function returns colors for each block of the grid.
+    # 0: Silver for blocks allowed
+    # 1: White for no blocks allowed
+    # 2: Light steel blue for fixed reflect block
+    # 3: Dim grey for fixed opaque block
+    # 4: Slate grey for fixed refract block
+
+    return {
+        0: (192, 192, 192),
+        1: (255, 255, 255),
+        2: (176, 196, 222),
+        3: (105, 105, 105),
+        4: (112, 128, 144),
+    }
+            
+
+if __name__ == '__main__':
+
+    filename = input('Please enter the filename you want to solve: ')
+    Read = read_bff(filename)
+    GRID = Read[0]
+    blocks = Read[1]
+    lasers = Read[2]
+    points_position = Read[3]
+    cur_blocks = {}
+    cur_blocks['A'] = []
+    cur_blocks['B'] = []
+    cur_blocks['C'] = []
+    for i in range(len(GRID)):
+        for j in range(len(GRID[0])):
+            if GRID[i][j] == 2:
+                cur_blocks['A'].append((i,j))
+            if GRID[i][j] == 3:
+                cur_blocks['B'].append((i,j))
+            if GRID[i][j] == 4:
+                cur_blocks['C'].append((i,j))
+                
+    
+    print(run_all_blocks_comb(blocks,GRID,0,cur_blocks,lasers,points_position))
+    c=save(GRID,lasers,points_position,cur_blocks)
