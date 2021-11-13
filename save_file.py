@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw
 
-
 def save(GRID, lasers, points_position, cur_blocks):
     # rBlocks are the number of rows of the grid and cBlocks are the columns
 
@@ -42,9 +41,9 @@ def save(GRID, lasers, points_position, cur_blocks):
         pass
     else:
         for i in A:
-            xb = i[0] / 2 - 0.5
-            yb = i[1] / 2 - 0.5
-            t = (xb, yb)
+            xa = i[0] / 2 - 0.5
+            ya = i[1] / 2 - 0.5
+            t = (xa, ya)
             solA.append(t)
     if not B:
         pass
@@ -59,18 +58,16 @@ def save(GRID, lasers, points_position, cur_blocks):
         pass
     else:
         for i in C:
-            xb = i[0] / 2 - 0.5
-            yb = i[1] / 2 - 0.5
-            t = (xb, yb)
+            xc = i[0] / 2 - 0.5
+            yc = i[1] / 2 - 0.5
+            t = (xc, yc)
             solC.append(t)
     for i in range(rBlocks):
         for j in range(cBlocks):
             if (i, j) in solB:
                 Block[i][j] = 3
-                print(i, j)
             if (i, j) in solA:
                 Block[i][j] = 2
-                print(i, j)
             if (i, j) in solC:
                 Block[i][j] = 4
 
@@ -147,21 +144,4 @@ def save(GRID, lasers, points_position, cur_blocks):
         img1 = ImageDraw.Draw(img)
         img1.ellipse(shape, fill=(0, 0, 0, 255))
 
-    img.save('dark_1.png')
-
-
-def get_colors():
-    # This function returns colors for each block of the grid.
-    # 0: Silver for blocks allowed
-    # 1: White for no blocks allowed
-    # 2: Light steel blue for fixed reflect block
-    # 3: Dim grey for fixed opaque block
-    # 4: Slate grey for fixed refract block
-
-    return {
-        0: (192, 192, 192),
-        1: (255, 255, 255),
-        2: (176, 196, 222),
-        3: (105, 105, 105),
-        4: (112, 128, 144),
-    }
+    img.save('mad_7.png')
