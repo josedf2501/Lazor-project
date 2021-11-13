@@ -145,3 +145,21 @@ def save(GRID, lasers, points_position, cur_blocks):
         img1.ellipse(shape, fill=(0, 0, 0, 255))
 
     img.save('mad_7.png')
+
+
+def get_colors():
+    # This function returns colors for each block of the grid.
+    # 0: Silver for blocks allowed
+    # 1: White for no blocks allowed
+    # 2: Light steel blue for fixed reflect block
+    # 3: Dim grey for fixed opaque block
+    # 4: Slate grey for fixed refract block
+
+    return {
+        0: (192, 192, 192),
+        1: (255, 255, 255),
+        2: (176, 196, 222),
+        3: (105, 105, 105),
+        4: (112, 128, 144),
+    }
+            
