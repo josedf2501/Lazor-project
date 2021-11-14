@@ -1,4 +1,4 @@
-This is a repository for the group project of Software Carpentry.
+This the Lazor group project of Software Carpentry.
 
 Members: Jose Daniel Fuentes, Wilkins Njigna Njinguet, and Jiahang Yan 
 
