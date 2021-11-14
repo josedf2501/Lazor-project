@@ -1,6 +1,6 @@
 This is a repository for the group project of Software Carpentry.
 
-Members: Wilkins Njigna Njinguet, Jose Daniel Fuentes, and Jiahang Yan 
+Members: Jose Daniel Fuentes, Wilkins Njigna Njinguet, and Jiahang Yan 
 
 The code can be used to find the solutions to the 'Lazor' game.
 
