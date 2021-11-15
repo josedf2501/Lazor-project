@@ -1,111 +1,122 @@
-import math
-import numpy as np
+import re
 
-def read_bff_file(file_name):
+def read_file(filename):
+    '''This reading function will return a dictionary that will contain 
+     information about the gameboard, position of lazers and the directions.
+     We will use the re module to search strings in a way that it will 
+     facilitate our task of creating a dictionary with all our specifications.'''
+
+    # Check if the user entered a .bff file
+    if '.bff' not in filename:
+        print('The file you entered is not in .bff format')
+        return None
     
-   # This function reads a .bff file and makes it readable
+        
+    bff = open(filename)
 
-    # Parameters 
-        #file_name: *str*
-            name of lazor puzzle input file.
-
-    # Returns 
-        board_info: *list* *str*
-            list of all relevant lines of input file to be used in board
-            generation
     
-    if ".bff" not in file_name:
-        file_name += ".bff"  # Adds extension to open file with .bff extension.
+    read_grid = bff.read()
+    # read file and find the grid part
+    # Use re.DOTALL to get the part of the file from 'GRID START from *GRID STOP'
+    grid = re.search('GRID START.*GRID STOP', read_grid, re.DOTALL)
+    grid_text = read_grid[grid.start():grid.end()]
+    bff.close()
 
-    print("Hello, welcome to the gameboard reader.")
-    my_file = open(file_name, "r")
+    # calculate the size of our grid
+    rows = 0
+    col = 0
 
-    board_info = [i.split("\n") for i in my_file]
-    for each_line in board_info:
-        if len(each_line) > 1:
-            # Remove the \n Except for last line which has no \n
-            del each_line[-1]
+    # We will use re.search to find the first row of the grid.
+    # The number of columns will be calculated with the number of elements 
+    # in the first row.
+    row = re.search('([oxABC] *)+[oxABC]', read_grid)
+    row = read_grid[row.start():row.end()]
+    row=row.replace(' ','')
+    col=len(row)
+    
 
-    board_info = [i for i in board_info if i != [""]] 
+    # creat a list and make each line of grid a element
+    # to calculate the number of rows
+    
+  
+    board = grid_text.split('\n')
+    board.remove('GRID START')
+    board.remove('GRID STOP')
+    
+    rows = len(board)
+    
 
-    # turning list of lists to list of strings
-    board_info = [j for i in board_info for j in i]
-    board_info = [i for i in board_info if i[0] != "#"]  # remove comments
-    my_file.close()
+    # Create the list that will be used in the solver function.
+    GRID = [
+        [0 for i in range(2 * col + 1)]
+        for j in range(2 * rows + 1)
+    ]
 
-    return board_info
+    # change the number of responding position
+    a = -1
+    for i in board:
+        a =a + 1
+        k = 0
+        for j in i:
+            if j == 'o':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 1
+            if j == 'A':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 2
+            if j == 'B':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 3
+            if j == 'C':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 4
+            if j == 'x':
+                k += 1
+                GRID[2 * a + 1][2 * k - 1] = 5
 
-
-def board_interpretor(board_information, verbose=False):
-    '''
-    This function interprets a list of input lines from read_bff_file() and
-    creates a board for the lazor puzzle
-    # Parameters 
-        board_information: *list* *str*
-            list of input lines (as strings) from .bff input file
-     
-    '''
-    board_layout = []
-    blocks = []
-    lasers = []
-    points = []
-    tries = 0
-
-    for each_line in board_information:  # find GRID START
-        if each_line.lower() == "grid start":
-
-            while tries < 1:
-                for i in board_information:
-                    if i.lower() == "grid stop":
-                        print("ok!")
-                        tries += 1
-                        break
-
-                    else:
-                        board_layout.append(i.split())
-
-        # account for numbers of available block types
-        elif (each_line[0].lower() in ["a", "b", "c"] and
-              each_line[2].isdigit()):
-
-            if each_line in board_layout:
-                pass
-                # letters does not go in this list e.g: B o o
-            else:
-                blocks.append(each_line.replace(" ", ""))
-
-        # account for laser positions and velocities
-        elif each_line[0].lower() == "l":
-            lasers.append(list(map(int, each_line.split()[1:])))
-
-        # account for points that must be crossed to complete the puzzle
-        elif each_line[0].lower() == "p":
-            points.append(tuple(list(map(int, each_line.split()[1:]))))
-
-    board_layout = board_layout[1:]  # Remove Grid start that was appended
-
-    # initialize and populate playGrid
-    playGrid = [["-" for col in range(2 * len(board_layout[0]) + 1)]
-                for row in range(2 * len(board_layout) + 1)]
-
-    for row in range(len(board_layout)):
-        for col in range(len(board_layout[row])):
-            playGrid[2 * row + 1][2 * col + 1] = board_layout[row][col]
-
+    # Use re.findall to get the points position.
+    
+    points = re.findall('P \\d \\d', read_grid)
+    
+   
+    
+    points_position = []
+    #The for loop is used to put the points in form of tuples in a list 
+    
+    
     for i in points:
-        playGrid[i[1]][i[0]] = "P"
+        i=i.replace(' ','')
+        x = int(i[1])
+        y = int(i[2])
+        points_position.append((x, y))
+      
 
-    for i in lasers:
-        playGrid[i[1]][i[0]] = "L"
+    # Get the lasers positions and directions from read_grid
+    # and then put the information in a dictionary.
+    lasers = {}
+    laser = re.findall('L \\d \\d .*\\d .*\\d', read_grid)
+    
+    
+    p = []
+    d = []
+    for i in laser:
+        i = i.split(' ')
+        x_pos = int(i[1])
+        y_pos = int(i[2])
+        p.append((x_pos, y_pos))
+        lasers['position'] = p
+        x_dir = int(i[3])
+        y_dir = int(i[4])
+        d.append((x_dir, y_dir))
+        lasers['direction'] = d
 
-    if verbose:
-        print("blocks: " + f"{blocks}")
-        print("lasers: " + f"{lasers}")
-        print("points: " + f"{points}")
-        print("board layout: " + f"{board_layout}")
-        print("playGrid: ")
-        for i in playGrid:
-            print(i)
-        print("\n")
+    # Get the blocks information and put it in a dictionary.
+    blocks = {}
+    block = re.findall('[ABC] \\d', read_grid)
+    
+    for i in block:
+        i=i.replace(' ','')
+        blocks[i[0]] = int(i[1])
+   
 
-    return board_layout, blocks, lasers, points, playGrid
+    return (GRID, blocks, lasers, points_position)
