@@ -1,5 +1,3 @@
-
-
 import sys
 import re
 from PIL import Image, ImageDraw
@@ -213,7 +211,7 @@ def run_all_blocks_comb(blocks,GRID,index,cur_blocks,lasers,points_position):
     lens = len(GRID[0])*len(GRID)
     if ('A' not in blocks or blocks['A']==0) and ('B' not in blocks or blocks['B']==0) and ('C' not in blocks or blocks['C']==0):
         if(run_pro(lasers,points_position,GRID,cur_blocks) == True):
-            print(cur_blocks)
+            
             return run_pro(lasers,points_position,GRID,cur_blocks)
     for i in range(index,lens):
         col_index = (int)(i/len(GRID[0]))
@@ -250,7 +248,7 @@ def save(GRID, lasers, points_position, cur_blocks):
     Block = []
 
     # This for loop is used to form the Grid like in the lazor app.
-    print(GRID)
+    
     for i in range(0, len(GRID)):
         # The reading function give us a series of numbers.
         # When the list is full of zeros means that t
@@ -278,7 +276,7 @@ def save(GRID, lasers, points_position, cur_blocks):
     solA = []
     solB = []
     solC = []
-    print(Block)
+    
     # The for loop will be used to adjust the blocks in the GRID.
     if not A:
         pass
@@ -428,7 +426,8 @@ if __name__ == '__main__':
                         cur_blocks['B'].append((i,j))
                         if GRID[i][j] == 4:
                             cur_blocks['C'].append((i,j))
-    print(run_all_blocks_comb(blocks,GRID,0,cur_blocks,lasers,points_position))
-    c=save(GRID,lasers,points_position,cur_blocks)
+    run_all_blocks_comb(blocks,GRID,0,cur_blocks,lasers,points_position)
+    save(GRID,lasers,points_position,cur_blocks)
         
    
+
