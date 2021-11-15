@@ -3,70 +3,62 @@
 import re
 from PIL import Image, ImageDraw
 
-def read_bff(filename):
-    '''
-    Read bff files and turn it to a list representing grid, and two
-    dictionaries including information about lasers and available blocks
-    **Parameters**
-        filename: *str*
-            The name of bff file
-    **Returns**
-        GRID: *list*
-            A 2D list representing the layout of grid
-            0 represent gaps
-            1 represent an allowed position for block
-            2 represent reflect block
-            3 represent opaque block
-            4 represent refract block
-            5 represent a position can not place block
-            6 represent the points that need laser to intersect
-        blocks: *dictionary*
-            a dictionary includes how many and what kind of block we can use
-        lasers: *dictionary*
-            a dictionary includes the position and direction of lasers
-        points_position: *list*
-            a list that contains all the points we need to pass
-    '''
-    # ensure filename
-    if ".bff" in filename:
-        filename = filename.split(".bff")[0]
-    bff = open(filename + ".bff")
+def read_file(filename):
+    '''This reading function will return a dictionary that will contain 
+     information about the gameboard, position of lazers and the directions.
+     We will use the re module to search strings in a way that it will 
+     facilitate our task of creating a dictionary with all our specifications.'''
 
+    # Check if the user entered a .bff file
+    if '.bff' not in filename:
+        print('The file you entered is not in .bff format')
+        return None
+    
+        
+    bff = open(filename)
+
+    
+    read_grid = bff.read()
     # read file and find the grid part
-    content = bff.read()
-    pattern = 'GRID START.*GRID STOP'
-    grid = re.search(pattern, content, re.DOTALL)
-    grid_text = content[grid.start():grid.end()]
+    # Use re.DOTALL to get the part of the file from 'GRID START from *GRID STOP'
+    grid = re.search('GRID START.*GRID STOP', read_grid, re.DOTALL)
+    grid_text = read_grid[grid.start():grid.end()]
     bff.close()
 
     # calculate the size of our grid
     rows = 0
-    columns = 0
+    col = 0
 
-    # find one line of grid, calculate how many columns we need
-    row = re.search('([oxABC] *)+[oxABC]', content)
-    row = content[row.start():row.end()]
-    for i in row:
-        if i == 'o' or i == 'x' or i == 'A' or i == 'B' or i == 'C':
-            columns += 1
+    # We will use re.search to find the first row of the grid.
+    # The number of columns will be calculated with the number of elements 
+    # in the first row.
+    row = re.search('([oxABC] *)+[oxABC]', read_grid)
+    row = read_grid[row.start():row.end()]
+    row=row.replace(' ','')
+    col=len(row)
+    
 
     # creat a list and make each line of grid a element
     # to calculate the number of rows
-    Rows = grid_text.split('\n')
-    Rows.remove('GRID START')
-    Rows.remove('GRID STOP')
-    rows = len(Rows)
+    
+  
+    board = grid_text.split('\n')
+    board.remove('GRID START')
+    board.remove('GRID STOP')
+    
+    rows = len(board)
+    
 
-    # creat the 2d list
+    # Create the list that will be used in the solver function.
     GRID = [
-        [0 for i in range(2 * columns + 1)]
+        [0 for i in range(2 * col + 1)]
         for j in range(2 * rows + 1)
     ]
 
     # change the number of responding position
     a = -1
-    for i in Rows:
-        a += 1
+    for i in board:
+        a =a + 1
         k = 0
         for j in i:
             if j == 'o':
@@ -85,42 +77,50 @@ def read_bff(filename):
                 k += 1
                 GRID[2 * a + 1][2 * k - 1] = 5
 
-    # obtain the points information of bff files
-    # store them to a list and change their position
-    # number to 6
-    points = re.findall('P \\d \\d', content)
+    # Use re.findall to get the points position.
+    
+    points = re.findall('P \\d \\d', read_grid)
+    
+   
+    
     points_position = []
+    #The for loop is used to put the points in form of tuples in a list 
+    
+    
     for i in points:
-        position = i.split(' ')
-        x_coord = int(position[1])
-        y_coord = int(position[2])
-        points_position.append((x_coord, y_coord))
-        # GRID[y_coord][x_coord] = 6
+        i=i.replace(' ','')
+        x = int(i[1])
+        y = int(i[2])
+        points_position.append((x, y))
+      
 
-    # obtain the lasers information of bff files
-    # and combine them to a dictionary
+    # Get the lasers positions and directions from read_grid
+    # and then put the information in a dictionary.
     lasers = {}
-    laser = re.findall('L \\d \\d .*\\d .*\\d', content)
+    laser = re.findall('L \\d \\d .*\\d .*\\d', read_grid)
+    
+    
     p = []
     d = []
     for i in laser:
-        info = i.split(' ')
-        x_coord = int(info[1])
-        y_coord = int(info[2])
-        p.append((x_coord, y_coord))
+        i = i.split(' ')
+        x_pos = int(i[1])
+        y_pos = int(i[2])
+        p.append((x_pos, y_pos))
         lasers['position'] = p
-        x_dir = int(info[3])
-        y_dir = int(info[4])
+        x_dir = int(i[3])
+        y_dir = int(i[4])
         d.append((x_dir, y_dir))
         lasers['direction'] = d
 
-    # obtian the blocks information of bff files
-    # and combine them to a dictionary
+    # Get the blocks information and put it in a dictionary.
     blocks = {}
-    block = re.findall('[ABC] \\d', content)
+    block = re.findall('[ABC] \\d', read_grid)
+    
     for i in block:
-        information = i.split(' ')
-        blocks[information[0]] = int(information[1])
+        i=i.replace(' ','')
+        blocks[i[0]] = int(i[1])
+   
 
     return (GRID, blocks, lasers, points_position)
 
@@ -419,24 +419,25 @@ def get_colors():
 if __name__ == '__main__':
 
     filename = input('Please enter the filename you want to solve: ')
-    Read = read_bff(filename)
-    GRID = Read[0]
-    blocks = Read[1]
-    lasers = Read[2]
-    points_position = Read[3]
-    cur_blocks = {}
-    cur_blocks['A'] = []
-    cur_blocks['B'] = []
-    cur_blocks['C'] = []
-    for i in range(len(GRID)):
-        for j in range(len(GRID[0])):
-            if GRID[i][j] == 2:
-                cur_blocks['A'].append((i,j))
-            if GRID[i][j] == 3:
-                cur_blocks['B'].append((i,j))
-            if GRID[i][j] == 4:
-                cur_blocks['C'].append((i,j))
-                
-    
-    print(run_all_blocks_comb(blocks,GRID,0,cur_blocks,lasers,points_position))
-    c=save(GRID,lasers,points_position,cur_blocks)
+    Read = read_file(filename)
+    if Read != None:
+        GRID = Read[0]
+        blocks = Read[1]
+        lasers = Read[2]
+        points_position = Read[3]
+        cur_blocks = {}
+        cur_blocks['A'] = []
+        cur_blocks['B'] = []
+        cur_blocks['C'] = []
+        for i in range(len(GRID)):
+            for j in range(len(GRID[0])):
+                if GRID[i][j] == 2:
+                    cur_blocks['A'].append((i,j))
+                    if GRID[i][j] == 3:
+                        cur_blocks['B'].append((i,j))
+                        if GRID[i][j] == 4:
+                            cur_blocks['C'].append((i,j))
+        (run_all_blocks_comb(blocks,GRID,0,cur_blocks,lasers,points_position))
+        c=save(GRID,lasers,points_position,cur_blocks)
+        
+   
