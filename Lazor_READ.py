@@ -1,6 +1,6 @@
 import sys
 import re
-from PIL import Image, ImageDraw
+
 class File:
     '''This class File will return a dictionary that will contain 
      information about the gameboard, position of lazers and the directions.
