@@ -408,7 +408,7 @@ def get_colors():
 if __name__ == '__main__':
 
     filename = input('Please enter the filename you want to solve: ')
-    r=File(filename)
+    r = File(filename)
     Read = r.read_file()
     GRID = Read[0]
     blocks = Read[1]
